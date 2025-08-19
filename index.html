@@ -1,109 +1,93 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.7">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geoapify Route Calculator</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+        label, input, button { display: block; width: 100%; margin-bottom: 10px; }
+        input { padding: 8px; }
+        button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        #result { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; }
+    </style>
 </head>
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Geoapify Route Calculator&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>label, input, button { display: block; width: 100%; margin-bottom: 10px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>input { padding: 8px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#result { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;h1&gt;Geoapify ETA Calculator&lt;/h1&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;label for="apiKey"&gt;Geoapify API Key:&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;input type="text" id="apiKey" value="eea07d046ed54805a870ec0c968b90a9"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;label for="startCoords"&gt;Starting Coordinates (lat,lon):&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;input type="text" id="startCoords" value="39.7765,-75.3791"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;label for="endCoords"&gt;Destination Coordinates (lat,lon):&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;input type="text" id="endCoords" value="41.863,-71.9072"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;label for="mode"&gt;Mode of Transport:&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;select id="mode"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;option value="drive"&gt;Drive 🚗&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;option value="truck"&gt;Heavy Truck 🚚&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;option value="bicycle"&gt;Bicycle 🚲&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;option value="walk"&gt;Walk 🚶&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/select&gt;</p>
-<p class="p2"><span class="Apple-converted-space">    </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;button onclick="calculateRoute()"&gt;Calculate ETA&lt;/button&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="result"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;h3&gt;Result:&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;p id="travelTime"&gt;Travel Time: &lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>async function calculateRoute() {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const apiKey = document.getElementById('apiKey').value;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const startCoords = document.getElementById('startCoords').value;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const endCoords = document.getElementById('endCoords').value;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const mode = document.getElementById('mode').value;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const resultDiv = document.getElementById('travelTime');</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Construct the API URL</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const apiUrl = `https://api.geoapify.com/v1/routing?waypoints=${startCoords}|${endCoords}&amp;mode=${mode}&amp;apiKey=${apiKey}`;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>try {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>// Fetch data from the API</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const response = await fetch(apiUrl);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const data = await response.json();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>// Check for errors</p>
-<p class="p1"><span class="Apple-converted-space">                </span>if (data.error) {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>resultDiv.textContent = `Error: ${data.error.message}`;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>// Extract travel time from the first feature</p>
-<p class="p1"><span class="Apple-converted-space">                </span>if (data.features &amp;&amp; data.features.length &gt; 0) {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>const travelTimeInSeconds = data.features[0].properties.time;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                    </span>// Convert seconds to a readable format</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>const minutes = Math.floor(travelTimeInSeconds / 60);</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>const hours = Math.floor(minutes / 60);</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>const remainingMinutes = minutes % 60;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                    </span>let timeString = '';</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>if (hours &gt; 0) {</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>timeString += `${hours} hour${hours &gt; 1 ? 's' : ''} `;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>if (remainingMinutes &gt; 0 || hours === 0) {</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>timeString += `${remainingMinutes} minute${remainingMinutes &gt; 1 ? 's' : ''}`;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                    </span>resultDiv.textContent = `Travel Time: ${timeString}`;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>resultDiv.textContent = 'Could not find a route. Check your coordinates and API key.';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>} catch (error) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>resultDiv.textContent = 'An error occurred. Please check your network connection.';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>console.error('Error fetching data:', error);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+    <h1>Geoapify ETA Calculator</h1>
+
+    <label for="apiKey">Geoapify API Key:</label>
+    <input type="text" id="apiKey" value="eea07d046ed54805a870ec0c968b90a9">
+
+    <label for="startCoords">Starting Coordinates (lat,lon):</label>
+    <input type="text" id="startCoords" value="39.7765,-75.3791">
+
+    <label for="endCoords">Destination Coordinates (lat,lon):</label>
+    <input type="text" id="endCoords" value="41.863,-71.9072">
+
+    <label for="mode">Mode of Transport:</label>
+    <select id="mode">
+        <option value="drive">Drive 🚗</option>
+        <option value="truck">Heavy Truck 🚚</option>
+        <option value="bicycle">Bicycle 🚲</option>
+        <option value="walk">Walk 🚶</option>
+    </select>
+    
+    <button onclick="calculateRoute()">Calculate ETA</button>
+
+    <div id="result">
+        <h3>Result:</h3>
+        <p id="travelTime">Travel Time: </p>
+    </div>
+
+    <script>
+        async function calculateRoute() {
+            const apiKey = document.getElementById('apiKey').value;
+            const startCoords = document.getElementById('startCoords').value;
+            const endCoords = document.getElementById('endCoords').value;
+            const mode = document.getElementById('mode').value;
+            const resultDiv = document.getElementById('travelTime');
+
+            // Construct the API URL
+            const apiUrl = `https://api.geoapify.com/v1/routing?waypoints=${startCoords}|${endCoords}&mode=${mode}&apiKey=${apiKey}`;
+
+            try {
+                // Fetch data from the API
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                // Check for errors
+                if (data.error) {
+                    resultDiv.textContent = `Error: ${data.error.message}`;
+                    return;
+                }
+
+                // Extract travel time from the first feature
+                if (data.features && data.features.length > 0) {
+                    const travelTimeInSeconds = data.features[0].properties.time;
+
+                    // Convert seconds to a readable format
+                    const minutes = Math.floor(travelTimeInSeconds / 60);
+                    const hours = Math.floor(minutes / 60);
+                    const remainingMinutes = minutes % 60;
+
+                    let timeString = '';
+                    if (hours > 0) {
+                        timeString += `${hours} hour${hours > 1 ? 's' : ''} `;
+                    }
+                    if (remainingMinutes > 0 || hours === 0) {
+                        timeString += `${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}`;
+                    }
+
+                    resultDiv.textContent = `Travel Time: ${timeString}`;
+                } else {
+                    resultDiv.textContent = 'Could not find a route. Check your coordinates and API key.';
+                }
+
+            } catch (error) {
+                resultDiv.textContent = 'An error occurred. Please check your network connection.';
+                console.error('Error fetching data:', error);
+            }
+        }
+    </script>
 </body>
 </html>
