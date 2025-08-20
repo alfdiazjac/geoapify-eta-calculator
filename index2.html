@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador de Rutas Interactivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" crossorigin=""></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .container { max-width: 960px; }
+        .card { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .btn-primary { background-color: #3b82f6; }
+        .btn-primary:hover { background-color: #2563eb; }
+        .result-table { border-collapse: collapse; width: 100%; }
+        .result-table th, .result-table td { border: 1px solid #e5e7eb; padding: 12px; text-align: left; }
+        .result-table th { background-color: #e5e7eb; font-weight: 600; }
+        .result-row:nth-child(even) { background-color: #f9fafb; }
+        .result-row:hover { background-color: #e5e7eb; cursor: pointer; }
+        #loading { display: none; }
+        #map { height: 400px; width: 100%; border-radius: 8px; }
+        .leaflet-touch .leaflet-marker-icon, .leaflet-touch .leaflet-marker-shadow { transform: scale(1.5); }
+        .selected-row { background-color: #bfdbfe !important; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="container mx-auto">
+        <div class="card bg-white p-8 rounded-lg shadow-lg">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">Planificador de Rutas Interactivo 🚚</h1>
+            <p class="text-gray-600 mb-6 text-center">
+                Ingresa una dirección o haz clic en el mapa para establecer el punto de origen y destino.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label for="startLocation" class="block text-gray-700 font-semibold mb-2">Punto de Origen (dirección o lat,lon):</label>
+                    <input type="text" id="startLocation" placeholder="Ej. New York, NY o 40.7128,-74.0060" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="endLocation" class="block text-gray-700 font-semibold mb-2">Punto de Destino (dirección o lat,lon):</label>
+                    <input type="text" id="endLocation" placeholder="Ej. Los Angeles, CA o 34.0522,-118.2437" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label for="vehicleMode" class="block text-gray-700 font-semibold mb-2">Tipo de Vehículo:</label>
+                    <select id="vehicleMode" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="truck">Camión</option>
+                        <option value="heavy_truck">Camión Pesado</option>
+                        <option value="truck_dangerous_goods">Camión Mercancías Peligrosas</option>
+                        <option value="long_truck">Camión Largo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-3 text-gray-700">Opciones de Ruta:</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="avoidFerries" checked class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="avoidFerries" class="ml-2 text-gray-700">Evitar Ferris</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="avoidTolls" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="avoidTolls" class="ml-2 text-gray-700">Evitar Todos los Peajes</label>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="calculateETA()" class="w-full btn-primary text-white font-bold py-3 px-6 rounded-md transition-colors duration-200 hover:scale-105">
+                Calcular Rutas
+            </button>
+            <div id="loading" class="mt-4 text-center text-gray-600">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Calculando rutas...
+            </div>
+
+            <div id="resultsContainer" class="mt-8">
+                <!-- Los resultados se mostrarán aquí -->
+            </div>
+            
+            <!-- Contenedor del mapa -->
+            <div id="map" class="mb-6"></div>
+
+        </div>
+    </div>
+
+    <script>
+        // Clave API oculta
+        const API_KEY = 'eea07d046ed54805a870ec0c968b90a9';
+
+        // Variables globales para marcadores y datos de ruta
+        let startMarker = null;
+        let endMarker = null;
+        let allRoutesData = [];
+        let allRouteLayers = [];
+
+        // Inicializar el mapa
+        const map = L.map('map').setView([40.7128, -74.0060], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 18,
+        }).addTo(map);
+
+        // Listener para establecer marcadores al hacer clic en el mapa
+        map.on('click', function(e) {
+            if (!startMarker) {
+                startMarker = L.marker(e.latlng, { draggable: true }).addTo(map);
+                document.getElementById('startLocation').value = `${e.latlng.lat.toFixed(4)},${e.latlng.lng.toFixed(4)}`;
+                startMarker.bindPopup("Punto de Origen").openPopup();
+                startMarker.on('dragend', (e) => updateCoordinates(e, 'startLocation'));
+            } else if (!endMarker) {
+                endMarker = L.marker(e.latlng, { draggable: true, icon: new L.Icon.Default({ iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png' }) }).addTo(map);
+                document.getElementById('endLocation').value = `${e.latlng.lat.toFixed(4)},${e.latlng.lng.toFixed(4)}`;
+                endMarker.bindPopup("Punto de Destino").openPopup();
+                endMarker.on('dragend', (e) => updateCoordinates(e, 'endLocation'));
+            }
+        });
+
+        // Función para actualizar las coordenadas en el input al arrastrar el marcador
+        function updateCoordinates(e, inputId) {
+            const latlng = e.target.getLatLng();
+            document.getElementById(inputId).value = `${latlng.lat.toFixed(4)},${latlng.lng.toFixed(4)}`;
+        }
+
+        // Función para convertir la dirección de texto a coordenadas
+        async function geocode(location) {
+            const latLonRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
+            if (latLonRegex.test(location)) {
+                return location;
+            }
+
+            const apiUrl = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(location)}&apiKey=${API_KEY}`;
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            if (data.features && data.features.length > 0) {
+                const lon = data.features[0].geometry.coordinates[0];
+                const lat = data.features[0].geometry.coordinates[1];
+                return `${lat},${lon}`;
+            } else {
+                throw new Error(`No se encontraron coordenadas para la ubicación: ${location}`);
+            }
+        }
+
+        // Función principal para calcular el ETA y las rutas
+        async function calculateETA() {
+            const startLocationText = document.getElementById('startLocation').value.trim();
+            const endLocationText = document.getElementById('endLocation').value.trim();
+            const vehicleMode = document.getElementById('vehicleMode').value;
+            const avoidFerries = document.getElementById('avoidFerries').checked;
+            const avoidTolls = document.getElementById('avoidTolls').checked;
+            const resultsContainer = document.getElementById('resultsContainer');
+            const loadingIndicator = document.getElementById('loading');
+            
+            resultsContainer.innerHTML = '';
+            loadingIndicator.style.display = 'block';
+            allRoutesData = [];
+
+            if (!startLocationText || !endLocationText) {
+                resultsContainer.innerHTML = `<p class="text-red-500">Por favor, complete los campos de origen y destino.</p>`;
+                loadingIndicator.style.display = 'none';
+                return;
+            }
+
+            try {
+                const startCoords = await geocode(startLocationText);
+                const endCoords = await geocode(endLocationText);
+
+                // Eliminar marcadores previos y crear nuevos
+                if (startMarker) map.removeLayer(startMarker);
+                if (endMarker) map.removeLayer(endMarker);
+                
+                const startLatLng = startCoords.split(',').map(Number);
+                const endLatLng = endCoords.split(',').map(Number);
+                
+                startMarker = L.marker(startLatLng, { draggable: true }).addTo(map).bindPopup("Punto de Origen").openPopup();
+                endMarker = L.marker(endLatLng, { draggable: true, icon: new L.Icon.Default({ iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png' }) }).addTo(map).bindPopup("Punto de Destino").openPopup();
+                startMarker.on('dragend', (e) => updateCoordinates(e, 'startLocation'));
+                endMarker.on('dragend', (e) => updateCoordinates(e, 'endLocation'));
+
+                // Definir las combinaciones a probar
+                const routeModes = ['balanced', 'short', 'less_maneuvers'];
+                const trafficOptions = ['free_flow', 'approximated'];
+                
+                const promises = [];
+                const combinations = [];
+
+                routeModes.forEach(routeMode => {
+                    trafficOptions.forEach(traffic => {
+                        const tolls = [false, true];
+                        tolls.forEach(avoidTolls => {
+                            const params = {
+                                waypoints: `${startCoords}|${endCoords}`,
+                                mode: vehicleMode,
+                                route_mode: routeMode,
+                                units: 'imperial',
+                                lang: 'en',
+                                avoid: avoidFerries ? 'ferries' : '',
+                                exclude_tolls: avoidTolls,
+                                traffic: traffic,
+                                apiKey: API_KEY,
+                            };
+                            const url = `https://api.geoapify.com/v1/routing?${new URLSearchParams(params).toString()}`;
+                            promises.push(fetch(url));
+                            combinations.push({ routeMode, traffic, avoidTolls });
+                        });
+                    });
+                });
+
+                const responses = await Promise.all(promises);
+                const allData = await Promise.all(responses.map(res => res.json()));
+
+                loadingIndicator.style.display = 'none';
+                
+                // Limpiar rutas previas
+                allRouteLayers.forEach(layer => map.removeLayer(layer));
+                allRouteLayers = [];
+                allRoutesData = [];
+
+                // Generar la tabla de resultados compacta con referencias
+                let resultsHtml = `<h2 class="text-2xl font-bold mb-4 text-gray-800">Resultados del Cálculo de ETA</h2>`;
+                resultsHtml += `<div class="overflow-x-auto"><table class="result-table rounded-lg overflow-hidden"><thead><tr><th>Ref.</th><th>Tipo de Ruta</th><th>Tráfico</th><th>ETA</th><th>Peajes</th></tr></thead><tbody>`;
+                
+                allData.forEach((data, index) => {
+                    const combo = combinations[index];
+                    const routeModeText = { 'balanced': 'Balanceada', 'short': 'Más Corta', 'less_maneuvers': 'Menos Maniobras' };
+                    const trafficText = { 'free_flow': 'Flujo Libre', 'approximated': 'Tráfico Aproximado' };
+                    const referenceLetter = String.fromCharCode(65 + index); // 'A', 'B', 'C', etc.
+
+                    let timeString = 'No se encontró ruta';
+                    let routeGeometry = null;
+
+                    if (data.features && data.features.length > 0) {
+                        const travelTimeInSeconds = data.features[0].properties.time;
+                        const minutes = Math.floor(travelTimeInSeconds / 60);
+                        const hours = Math.floor(minutes / 60);
+                        const remainingMinutes = minutes % 60;
+                        timeString = `${hours}h ${remainingMinutes}m`;
+                        routeGeometry = data.features[0].geometry;
+                    } else if (data.error) {
+                        timeString = `Error: ${data.error.message}`;
+                    }
+
+                    allRoutesData[index] = routeGeometry;
+
+                    resultsHtml += `<tr class="result-row" data-index="${index}" onclick="displayRoute(event)">
+                        <td><span class="font-bold text-lg">${referenceLetter}</span></td>
+                        <td>${routeModeText[combo.routeMode]}</td>
+                        <td>${trafficText[combo.traffic]}</td>
+                        <td>${timeString}</td>
+                        <td>${combo.avoidTolls ? 'Sí' : 'No'}</td>
+                    </tr>`;
+                });
+
+                resultsHtml += `</tbody></table></div>`;
+                
+                // Nota explicativa debajo de la tabla
+                resultsHtml += `
+                    <div class="mt-4 p-4 bg-gray-50 rounded-md">
+                        <p class="font-semibold text-gray-700">Nota sobre la tabla:</p>
+                        <ul class="list-disc list-inside text-sm text-gray-600">
+                            <li>Cada fila (A, B, C...) representa una combinación única de opciones de ruta.</li>
+                            <li>Las opciones de **Tipo de Ruta** incluyen: <strong>Balanceada</strong> (equilibrio entre tiempo y distancia), <strong>Más Corta</strong> (distancia mínima) y <strong>Menos Maniobras</strong> (menos giros y desvíos).</li>
+                            <li>El **Tráfico** puede ser de <strong>Flujo Libre</strong> (sin congestión) o <strong>Tráfico Aproximado</strong> (basado en datos de tráfico en tiempo real).</li>
+                            <li>La columna de **Peajes** indica si la ruta evita los peajes (Sí) o no (No).</li>
+                        </ul>
+                    </div>
+                `;
+                
+                resultsContainer.innerHTML = resultsHtml;
+
+                // Mostrar la primera ruta válida por defecto
+                displayRoute({ currentTarget: document.querySelector('.result-row') });
+
+            } catch (error) {
+                loadingIndicator.style.display = 'none';
+                resultsContainer.innerHTML = `<p class="text-red-500">Error: ${error.message}. Por favor, verifique las ubicaciones de entrada.</p>`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Función para mostrar la ruta en el mapa al hacer clic en la tabla
+        function displayRoute(event) {
+            const selectedRow = event.currentTarget;
+            if (!selectedRow) return;
+            const index = selectedRow.dataset.index;
+
+            // Limpiar las selecciones de la tabla y marcar la fila actual
+            document.querySelectorAll('.result-row').forEach(row => row.classList.remove('selected-row'));
+            selectedRow.classList.add('selected-row');
+
+            // Limpiar las capas de ruta previas en el mapa
+            allRouteLayers.forEach(layer => map.removeLayer(layer));
+            allRouteLayers = [];
+
+            // Dibujar todas las rutas, resaltando la seleccionada
+            allRoutesData.forEach((geometry, i) => {
+                if (geometry) {
+                    const routeLayer = L.geoJSON(geometry, {
+                        style: {
+                            color: (i == index) ? '#3b82f6' : '#9ca3af',
+                            weight: (i == index) ? 5 : 3,
+                            opacity: (i == index) ? 0.9 : 0.5,
+                            fillOpacity: 0
+                        }
+                    }).addTo(map);
+                    allRouteLayers.push(routeLayer);
+                }
+            });
+
+            // Ajustar el mapa para que se ajuste a la ruta
+            if (allRouteLayers[0]) {
+                map.fitBounds(allRouteLayers[0].getBounds(), { padding: [50, 50] });
+            }
+        }
+    </script>
+</body>
+</html>
